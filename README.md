@@ -4,4 +4,4 @@ Code repository accompanying the paper "A Generative Model For Evaluating Missin
 * Analysis Pipeline
   * python: miss-based-HC-10-10-23.ipynb is a jupiter notebook that contains all the results in the Analysis Pipeline section as well as additional results which did not make it into the paper. LogReg-CV-15-07-23.py is code used for tuning the penalty term in the LASSO-LR model predicting structured missingness.
 * Simulation Study
-  * python: 
+  * python: FastIterativeImputation.py is our own implementation of iterative imputation that can handle three different methods of selecting a subset of imputation predictors for each variable. IterativeImputer.py is code for evaluating the performance of iterative imputation. 
