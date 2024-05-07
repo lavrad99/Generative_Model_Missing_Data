@@ -9,3 +9,5 @@ Code repository accompanying the paper "A Generative Model For Evaluating Missin
 * Illustrative Example
   * python: creating_and_pickling_data.ipynb is a jupyter notebook where the 15000 nIDPs for the illustrative example are selected. Files with the prefix "creating_imp_mat_" contain code for handling missing data. Files with the prefix "feature_selection_" contain code for selecting the 15 features for each method. creating_final_data_sets-new.ipynb is a data set for creating the final data sets containing only the selected variables and confounds.
   * R: creating_imp_mat_SoftImpute.R is code for creating the imputed data matrix of real data using SoftImpute. evaluating_methods_illustrative_example.R contains code for evaluating the methods on the illustrative example.
+ 
+ The repository also includes the file 'X_miss_example.csv.zip', which is an example of a dataset generated using our method.
