@@ -4,7 +4,7 @@ library('DescTools')
 library('pROC')
 library('missMethods')
 
-my_directory <- ''
+my_directory <- '.'
 
 my_output_directory <- './results/'
 
@@ -31,7 +31,13 @@ bin_inds <- readRDS(paste(my_directory , 'bin_inds.rds' , sep = ''))
 
 dim_low_rank <- round(perc_low_rank/100*dim(X_miss)[2])
 
-my_lambda <- lambda0(X_miss , trace.it = T)/4
+data_SVD <- X_miss
+
+data_SVD[is.na(X_miss)] <- impute_mean(X_miss)[is.na(X_miss)]
+
+singular_vals <- svd(data_SVD)$d
+
+my_lambda <- singular_vals[dim_low_rank]
 
 my_result <- softImpute(x = X_miss , rank.max = dim_low_rank,
                         lambda = my_lambda, trace.it = T , type = 'svd')
@@ -66,7 +72,7 @@ for(clus in analysis_clus){
     sd_imp_FW <- c(sd_imp_FW ,
                    sd(my_X_imp[is.na(X_miss[ , i])]))
     RMSE_imp_FW <- c(RMSE_imp_FW ,
-                  sqrt(mean(((my_X_imp - my_X_full)^2)[is.na(X_miss[ , i])])))
+                     sqrt(mean(((my_X_imp - my_X_full)^2)[is.na(X_miss[ , i])])))
     
   }
   
@@ -98,7 +104,13 @@ for(clus in analysis_clus){
 
 dim_low_rank <- round(perc_low_rank/100*dim(X_miss_MCAR_B)[2])
 
-my_lambda <- lambda0(X_miss_MCAR_B , trace.it = T)/4
+data_SVD <- X_miss_MCAR_B
+
+data_SVD[is.na(X_miss_MCAR_B)] <- impute_mean(X_miss_MCAR_B)[is.na(X_miss_MCAR_B)]
+
+singular_vals <- svd(data_SVD)$d
+
+my_lambda <- singular_vals[dim_low_rank]
 
 my_result <- softImpute(x = X_miss_MCAR_B , rank.max = dim_low_rank,
                         lambda = my_lambda, trace.it = T , type = 'svd')
@@ -132,7 +144,7 @@ for(clus in analysis_clus){
     sd_imp_FW <- c(sd_imp_FW ,
                    sd(my_X_imp[is.na(X_miss_MCAR_B[ , i])]))
     RMSE_imp_FW <- c(RMSE_imp_FW ,
-                  sqrt(mean(((my_X_imp - my_X_full)^2)[is.na(X_miss_MCAR_B[ , i])])))
+                     sqrt(mean(((my_X_imp - my_X_full)^2)[is.na(X_miss_MCAR_B[ , i])])))
     
   }
   
