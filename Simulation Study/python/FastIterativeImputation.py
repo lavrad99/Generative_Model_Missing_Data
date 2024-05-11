@@ -27,10 +27,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import mean_squared_error
-import gzip
-import warnings
-
-warnings.filterwarnings("error")
 
 def check_if_binary(z):
     miss_inds = np.isnan(z)
@@ -54,6 +50,7 @@ class MixedPredictor(BaseEstimator):
         self.y_mean_ = np.mean(y)
         self.y_std_ = np.std(y)
         #check if y is binary
+        self.one_class_ = False
         
         if self.scale == True:
             my_scaler = StandardScaler()
@@ -62,8 +59,12 @@ class MixedPredictor(BaseEstimator):
         
         if check_if_binary(y) == True:
             #we classify
-            self.fitted_predictor_ = LogisticRegression(C = self.C_LR , max_iter = 1000).fit(X,y==1)
             self.binary_ = True
+            if np.unique(y).shape[0] == 1:
+                self.one_class_ = True
+                self.one_class_value_ = y[0]
+            else:
+                self.fitted_predictor_ = LogisticRegression(C = self.C_LR , max_iter = 1000).fit(X,y==1)
         else:
             #we regress
             self.fitted_predictor_ = BayesianRidge().fit(X,y)
@@ -77,9 +78,15 @@ class MixedPredictor(BaseEstimator):
             X = check_array(X)
             try:
                 if not self.fuzzy_pred_bin or not self.binary_:
-                    my_pred = self.fitted_predictor_.predict(X)
+                    if self.one_class_ == True:
+                        my_pred = np.full((X.shape[0],) , self.one_class_value_)
+                    else:
+                        my_pred = self.fitted_predictor_.predict(X)
                 else:
-                    my_pred = self.fitted_predictor_.predict_proba(X)[: , self.fitted_predictor_.classes_].reshape(-1)
+                    if self.one_class_ == True:
+                        my_pred = np.full((X.shape[0],) , self.one_class_value_)
+                    else:
+                        my_pred = self.fitted_predictor_.predict_proba(X)[: , self.fitted_predictor_.classes_].reshape(-1)
             except:
                 if self.binary_ == True:
                     my_pred = np.full((X.shape[0],) ,self.y_mean_ > 0.5)
@@ -88,9 +95,12 @@ class MixedPredictor(BaseEstimator):
             return my_pred
         else:
             if self.binary_ == True:
-                my_probs = self.fitted_predictor_.predict_proba(X)[: , self.fitted_predictor_.classes_].reshape(-1)
-                #my_probs = self.fitted_predictor_.predict_proba(X)
-                return binomial(n = np.full(my_probs.shape , 1) , p = my_probs)
+                if self.one_class_ == True:
+                    return np.full((X.shape[0],) , self.one_class_value_)
+                else:
+                    my_probs = self.fitted_predictor_.predict_proba(X)[: , self.fitted_predictor_.classes_].reshape(-1)
+                    #my_probs = self.fitted_predictor_.predict_proba(X)
+                    return binomial(n = np.full(my_probs.shape , 1) , p = my_probs)
             else:
                 try:
                     my_pred = self.fitted_predictor_.predict(X, return_std=True)
@@ -200,6 +210,8 @@ class CreateSmartPredMat:
                 for j2 in range(X.shape[1]):
                     if j1 == j2:
                         self.excess_score_mat_[j1,j2] = -np.inf
+                    if np.isnan(self.excess_score_mat_[j1,j2]):
+                        self.excess_score_mat_[j1,j2] = -np.inf
             self.props_ = np.full((X.shape[1],1) , np.nan)
             for j in range(X.shape[1]):
                 if check_if_binary(X[: , j]):
@@ -252,6 +264,7 @@ class BespokeIterImp:
         self.random_pred = random_pred
         self.C_LR = C_LR
         self.fuzzy_pred_bin = fuzzy_pred_bin
+        self.scale = scale
     def fit_transform(self , X):
         n_iter_cutoffs = 1000
         my_iter_cutoffs = [round(i/n_iter_cutoffs*X.shape[1]) for i in range(1,n_iter_cutoffs)]
@@ -268,7 +281,8 @@ class BespokeIterImp:
                 if np.all(M[: , j] == False):
                     continue
                 my_imp = MixedPredictor(random_pred=self.random_pred,
-                                        C_LR = self.C_LR, fuzzy_pred_bin=self.fuzzy_pred_bin).fit(X_0[: , self.pred_mat[j , :] == True][M[: , j] == False , :] , X_0[M[: , j] == False , j])
+                                        C_LR = self.C_LR, fuzzy_pred_bin=self.fuzzy_pred_bin,
+                                       scale=self.scale).fit(X_0[: , self.pred_mat[j , :] == True][M[: , j] == False , :] , X_0[M[: , j] == False , j])
                 X_1[M[: , j] == True, j] = my_imp.predict(X_0[M[: , j] == True ,:][:, self.pred_mat[j , :] == True])
             #If there is any missingness left for any reason, we impute it using median imputation
             X_0 = X_1
