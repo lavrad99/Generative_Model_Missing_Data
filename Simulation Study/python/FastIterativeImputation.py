@@ -285,5 +285,5 @@ class BespokeIterImp:
                                        scale=self.scale).fit(X_0[: , self.pred_mat[j , :] == True][M[: , j] == False , :] , X_0[M[: , j] == False , j])
                 X_1[M[: , j] == True, j] = my_imp.predict(X_0[M[: , j] == True ,:][:, self.pred_mat[j , :] == True])
             #If there is any missingness left for any reason, we impute it using median imputation
-            X_0 = X_1
+            X_0 = copy(X_1)
         return X_1
